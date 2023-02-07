@@ -309,12 +309,12 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
     }
 
     for (col_name in col_names) {
-      if (identical(names(out_cols[[col_name]]), c('categories', 'codes'))) {
-        codes <- out_cols[[col_name]][['codes']] + 1
-        codes[codes == 0] <- NA
-        levels <- out_cols[[col_name]][['categories']]
-        out_cols[[col_name]] <- factor(levels[codes], levels=levels)
-      }
+        if (identical(names(out_cols[[col_name]]), c('categories', 'codes'))) {
+            codes <- out_cols[[col_name]][['codes']] + 1
+            codes[codes == 0] <- NA
+            levels <- out_cols[[col_name]][['categories']]
+            out_cols[[col_name]] <- factor(levels[codes], levels=levels)
+        }
     }
 
     if (!is.null(fields[["_index"]])) {
