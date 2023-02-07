@@ -299,21 +299,23 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
         )
     }
 
-    cat_names <- names(fields[["__categories"]])
-    for (cat_name in cat_names) {
-        levels <- as.vector(
-            rhdf5::h5read(file, file.path(path, "__categories", cat_name))
-        )
-        out_cols[[cat_name]] <- factor(out_cols[[cat_name]])
-        levels(out_cols[[cat_name]]) <- levels
-    }
-
-    for (col_name in col_names) {
-        if (identical(names(out_cols[[col_name]]), c('categories', 'codes'))) {
-            codes <- out_cols[[col_name]][['codes']] + 1
-            codes[codes == 0] <- NA
-            levels <- out_cols[[col_name]][['categories']]
-            out_cols[[col_name]] <- factor(levels[codes], levels=levels)
+    if ("__categories" %in% names(fields)) {
+        cat_names <- names(fields[["__categories"]])
+        for (cat_name in cat_names) {
+            levels <- as.vector(
+                rhdf5::h5read(file, file.path(path, "__categories", cat_name))
+            )
+            out_cols[[cat_name]] <- factor(out_cols[[cat_name]])
+            levels(out_cols[[cat_name]]) <- levels
+        }
+    } else {
+        for (col_name in col_names) {
+            if (identical(names(out_cols[[col_name]]), c('categories', 'codes'))) {
+                codes <- out_cols[[col_name]][['codes']] + 1
+                codes[codes == 0] <- NA
+                levels <- out_cols[[col_name]][['categories']]
+                out_cols[[col_name]] <- factor(levels[codes], levels=levels)
+            }
         }
     }
 
