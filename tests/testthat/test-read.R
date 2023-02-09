@@ -77,12 +77,41 @@ test_that("Reading H5AD works with native reader", {
 test_that("Reading v0.8 H5AD works with native reader", {
     sce <- readH5AD(file)
 
+    # Test float with NA
+    colData(sce)$dummy_num <- 42.42
+    colData(sce)$dummy_num[1] <- NA
+
+    # Test nullable ints
+    # HACK: ints work, but only by accident. Should follow the v0.8
+    # spec and read in the NA mask properly
+    colData(sce)$dummy_int <- as.integer(42)
+    colData(sce)$dummy_int[1] <- NA
+
+    ## Test simple strings
+    ## NOTE: writeH5AD seems to write strings as factors so we can't
+    ## test this yet
+    #colData(sce)$dummy_str <- "hello"
+    #colData(sce)$dummy_str[1] <- "world"
+
+    ## Test nullable booleans
+    ## FIXME: native R is reading in the bools as chars
+    #colData(sce)$dummy_bool <- TRUE
+    #colData(sce)$dummy_bool[1] <- FALSE
+    #colData(sce)$dummy_bool[2] <- NA
+
     temp <- tempfile(fileext = ".h5ad")
     writeH5AD(sce, temp, version = "0.8")
 
     sce2 <- readH5AD(temp, reader='R')
 
-    expect_identical(colnames(colData(sce2)), "cell_type")
+    # NOTE: colData columns not in same order. Is this a problem?
+    # Just re-sort them for now.
+    expect_true(all(colnames(colData(sce2)) %in% colnames(colData(sce))))
+    colData(sce2) <- colData(sce2)[,colnames(colData(sce))]
+
+    # sce already contains a factor column (cell_type) so we didn't
+    # add a dummy one. But double check it's there as expected
+    expect_identical(colnames(colData(sce2))[1], "cell_type")
     expect_identical(class(colData(sce2)$cell_type), "factor")
 
     expect_identical(rownames(sce), rownames(sce2))
