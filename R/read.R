@@ -108,13 +108,12 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
 
     contents <- .list_contents(file)
 
+    all.assays <- list()
+
     # Let's read in the X matrix first... if it's there.
-    if (!"X" %in% names(contents)) {
-        stop("missing an 'X' entry in '", file, "'")
+    if ("X" %in% names(contents)) {
+        all.assays[['X']] <- .read_matrix(file, "X", contents[["X"]], backed = backed)
     }
-    all.assays <- list(
-        X = .read_matrix(file, "X", contents[["X"]], backed = backed)
-    )
 
     for (layer in names(contents[["layers"]])) {
         tryCatch(
@@ -241,7 +240,7 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
     }
 
     if (("X_name" %in% names(metadata(sce))) && ("X" %in% names(contents))) {
-        stopifnot(names(assays)[1] == "X") #should always be true
+        stopifnot(names(assays)[1] == "X") #should be true b/c X is read 1st
         names(assays)[1] <- metadata(sce)[["X_name"]]
         metadata(sce)[["X_name"]] <- NULL
     }
