@@ -158,6 +158,10 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
             row_data <- .read_dim_data(file, "var", contents[["var"]])
             if (!is.null(row_data)) {
                 rowData(sce) <- row_data
+                # Manually set SCE rownames, because setting rowData
+                # doesn't seem to set them. (Even tho setting colData
+                # does set the colnames)
+                rownames(sce) <- rownames(row_data)
             }
         },
         error = function(e) {
@@ -329,7 +333,7 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
         df <- do.call(DataFrame, out_cols)
         rownames(df) <- indices
     } else if (!is.null(indices)) {
-        df <- DataFrame(row_names = indices)
+        df <- DataFrame(row.names = indices)
     } else {
         df <- NULL
     }
