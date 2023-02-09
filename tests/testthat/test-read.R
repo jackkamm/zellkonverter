@@ -74,6 +74,26 @@ test_that("Reading H5AD works with native reader", {
     expect_identical(colnames(colData(sce)), "cell_type")
 })
 
+test_that("Reading v0.8 H5AD works with native reader", {
+    sce <- readH5AD(file)
+
+    temp <- tempfile(fileext = ".h5ad")
+    writeH5AD(sce, temp, version = "0.8")
+
+    sce2 <- readH5AD(temp, reader='R')
+
+    expect_identical(colnames(colData(sce2)), "cell_type")
+    expect_identical(class(colData(sce2)$cell_type), "factor")
+
+    expect_identical(rownames(sce), rownames(sce2))
+    expect_identical(colnames(sce), colnames(sce2))
+
+    expect_identical(assays(sce), assays(sce2))
+    expect_identical(metadata(sce), metadata(sce2))
+    expect_identical(colData(sce), colData(sce2))
+    expect_identical(rowData(sce), rowData(sce2))
+})
+
 test_that("Skipping slot conversion works", {
     sce <- readH5AD(file, layers = FALSE, uns = FALSE, var = FALSE, obs = FALSE,
                     varm = FALSE, obsm = FALSE, varp = FALSE, obsp = FALSE)
