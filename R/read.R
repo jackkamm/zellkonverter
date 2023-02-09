@@ -240,11 +240,9 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
         )
     }
 
-    if ("X_name" %in% names(metadata(sce))) {
-        which_x <- names(assays) == "X"
-        if (any(which_x)) {
-            names(assays)[which_x] <- metadata(sce)[["X_name"]]
-        }
+    if (("X_name" %in% names(metadata(sce))) && ("X" %in% names(contents))) {
+        stopifnot(names(assays)[1] == "X") #should always be true
+        names(assays)[1] <- metadata(sce)[["X_name"]]
         metadata(sce)[["X_name"]] <- NULL
     }
 
