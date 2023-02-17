@@ -1,6 +1,7 @@
 # This tests the readH5AD function (and by implication, SCE2AnnData).
 library(SummarizedExperiment)
 file <- system.file("extdata", "krumsiek11.h5ad", package = "zellkonverter")
+file_v08 <- system.file("extdata", "krumsiek11_augmented_v0-8.h5ad", package = "zellkonverter")
 
 test_that("Reading H5AD works", {
     sce <- readH5AD(file)
@@ -75,52 +76,58 @@ test_that("Reading H5AD works with native reader", {
 })
 
 test_that("Reading v0.8 H5AD works with native reader", {
-    sce <- readH5AD(file)
+    sce_py <- readH5AD(file_v08)
+    sce_r <- readH5AD(file_v08, reader='R')
 
-    # Test float with NA
-    colData(sce)$dummy_num <- 42.42
-    colData(sce)$dummy_num[1] <- NA
+    expect_identical(rownames(sce_py), rownames(sce_r))
+    expect_identical(colnames(sce_py), colnames(sce_r))
 
-    # Test nullable ints
-    # HACK: ints work, but only by accident. Should follow the v0.8
-    # spec and read in the NA mask properly
-    colData(sce)$dummy_int <- as.integer(42)
-    colData(sce)$dummy_int[1] <- NA
+    # rowData is just an empty DataFrame here
+    expect_identical(rowData(sce_py), rowData(sce_r))
 
-    ## Test simple strings
-    ## NOTE: writeH5AD seems to write strings as factors so we can't
-    ## test this yet
-    #colData(sce)$dummy_str <- "hello"
-    #colData(sce)$dummy_str[1] <- "world"
+    # colData colnames not in same order, but check the sets are the same
+    expect_true(setequal(colnames(colData(sce_py)), colnames(colData(sce_r))))
 
-    ## Test nullable booleans
-    ## FIXME: native R is reading in the bools as chars
-    #colData(sce)$dummy_bool <- TRUE
-    #colData(sce)$dummy_bool[1] <- FALSE
-    #colData(sce)$dummy_bool[2] <- NA
+    # check colData columns that Python reader is able to handle
+    good_coldat_columns <- c('cell_type', 'dummy_bool', 'dummy_int',
+                             'dummy_num', 'dummy_num2')
 
-    temp <- tempfile(fileext = ".h5ad")
-    writeH5AD(sce, temp, version = "0.8")
+    expect_equal(colData(sce_py)[,good_coldat_columns],
+                 colData(sce_r)[,good_coldat_columns])
 
-    sce2 <- readH5AD(temp, reader='R')
+    # Manually check colData columns that Python reader doesn't handle
+    # right (it reads them as environment objects)
+    expect_equal(colData(sce_r)$dummy_bool2,
+                 c(FALSE, NA, rep(TRUE, 638)))
 
-    # NOTE: colData columns not in same order. Is this a problem?
-    # Just re-sort them for now.
-    expect_true(all(colnames(colData(sce2)) %in% colnames(colData(sce))))
-    colData(sce2) <- colData(sce2)[,colnames(colData(sce))]
+    expect_equal(colData(sce_r)$dummy_int2,
+                 c(NA, rep(42, 639)))
 
-    # sce already contains a factor column (cell_type) so we didn't
-    # add a dummy one. But double check it's there as expected
-    expect_identical(colnames(colData(sce2))[1], "cell_type")
-    expect_identical(class(colData(sce2)$cell_type), "factor")
+    # check the X assay
+    expect_identical(assays(sce_py), assays(sce_r))
 
-    expect_identical(rownames(sce), rownames(sce2))
-    expect_identical(colnames(sce), colnames(sce2))
+    # check the easy metadata columns
+    for (key in c('highlights', 'iroot', 'dummy_int')) {
+        expect_equal(metadata(sce_py)[[key]], metadata(sce_r)[[key]])
+    }
 
-    expect_identical(assays(sce), assays(sce2))
-    expect_identical(metadata(sce), metadata(sce2))
-    expect_identical(colData(sce), colData(sce2))
-    expect_identical(rowData(sce), rowData(sce2))
+    # python reads uns[dummy_bool] as an array, so convert it (is that
+    # a bug in the python reader?)
+    expect_equal(
+        as.vector(metadata(sce_py)[['dummy_bool']]),
+        metadata(sce_r)[['dummy_bool']]
+    )
+
+    # python reader doesn't parse these metadata, so check manually
+    # (the factor is skipped outright; the bool/int are returned as environments).
+    expect_identical(metadata(sce_r)[['dummy_bool2']],
+                     c(TRUE, FALSE, NA))
+
+    expect_equal(metadata(sce_r)[['dummy_int2']],
+                 as.array(c(1, 2, NA)))
+
+    expect_equal(metadata(sce_r)[['dummy_category']],
+                 factor(c("a", "b", NA)))
 })
 
 test_that("Skipping slot conversion works", {

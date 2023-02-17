@@ -228,7 +228,7 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
     if ("uns" %in% names(contents)) {
         tryCatch(
             {
-                metadata(sce) <- rhdf5::h5read(file, "uns")
+                metadata(sce) <- .read_convert(file, "uns", recursive=TRUE)
             },
             error = function(e) {
                 warning(wmsg(
@@ -298,16 +298,57 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
     mat
 }
 
+.read_convert <- function(file, path, recursive=FALSE) {
+    .convert_special_types(rhdf5::h5read(file, path),
+                           recursive=recursive)
+}
+
+.convert_special_types <- function(obj, recursive=FALSE) {
+    if (identical(names(obj), c('categories', 'codes'))) {
+        codes <- obj[['codes']] + 1
+        codes[codes == 0] <- NA
+        levels <- obj[['categories']]
+        obj <- factor(levels[codes], levels=levels)
+        return(obj)
+    }
+
+    if (identical(names(obj), c('mask', 'values'))) {
+        mask <- as.logical(obj[['mask']]) # convert enum to bool
+        obj <- obj[['values']]
+        obj[mask] <- NA
+    }
+
+    if (is.factor(obj) && identical(levels(obj), c('FALSE', 'TRUE'))) {
+        obj <- as.logical(obj)
+    }
+
+    if (recursive && is.list(obj)) {
+        obj <- lapply(
+            obj, function(x) .convert_special_types(x, recursive=TRUE)
+        )
+    }
+
+    if (is.list(obj) && !is.null(names(obj))) {
+        names(obj) <- make.names(names(obj))
+    }
+
+    obj
+}
+
 #' @importFrom S4Vectors DataFrame
 .read_dim_data <- function(file, path, fields) {
     col_names <- setdiff(names(fields), c("__categories", "_index"))
     out_cols <- list()
     for (col_name in col_names) {
-        out_cols[[col_name]] <- as.vector(
-            rhdf5::h5read(file, file.path(path, col_name))
-        )
+        out_cols[[col_name]] <- .read_convert(file, file.path(path, col_name),
+                                              recursive=FALSE)
+
+        if (!is.factor(out_cols[[col_name]])) {
+            out_cols[[col_name]] <- as.vector(out_cols[[col_name]])
+        }
     }
 
+    # Handle factors in anndata<0.8
     if ("__categories" %in% names(fields)) {
         cat_names <- names(fields[["__categories"]])
         for (cat_name in cat_names) {
@@ -316,15 +357,6 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
             )
             out_cols[[cat_name]] <- factor(out_cols[[cat_name]])
             levels(out_cols[[cat_name]]) <- levels
-        }
-    } else {
-        for (col_name in col_names) {
-            if (identical(names(out_cols[[col_name]]), c('categories', 'codes'))) {
-                codes <- out_cols[[col_name]][['codes']] + 1
-                codes[codes == 0] <- NA
-                levels <- out_cols[[col_name]][['categories']]
-                out_cols[[col_name]] <- factor(levels[codes], levels=levels)
-            }
         }
     }
 
