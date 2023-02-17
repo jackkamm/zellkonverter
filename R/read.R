@@ -349,15 +349,13 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
     }
 
     # Handle factors in anndata<0.8
-    if ("__categories" %in% names(fields)) {
-        cat_names <- names(fields[["__categories"]])
-        for (cat_name in cat_names) {
-            levels <- as.vector(
-                rhdf5::h5read(file, file.path(path, "__categories", cat_name))
-            )
-            out_cols[[cat_name]] <- factor(out_cols[[cat_name]])
-            levels(out_cols[[cat_name]]) <- levels
-        }
+    cat_names <- names(fields[["__categories"]])
+    for (cat_name in cat_names) {
+        levels <- as.vector(
+            rhdf5::h5read(file, file.path(path, "__categories", cat_name))
+        )
+        out_cols[[cat_name]] <- factor(out_cols[[cat_name]])
+        levels(out_cols[[cat_name]]) <- levels
     }
 
     if (!is.null(fields[["_index"]])) {
