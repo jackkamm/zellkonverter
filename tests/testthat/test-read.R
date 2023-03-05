@@ -82,7 +82,6 @@ test_that("Reading v0.8 H5AD works with native reader", {
     expect_identical(rownames(sce_py), rownames(sce_r))
     expect_identical(colnames(sce_py), colnames(sce_r))
 
-    # rowData is just an empty DataFrame here
     expect_identical(rowData(sce_py), rowData(sce_r))
 
     expect_identical(colnames(colData(sce_py)), colnames(colData(sce_r)))
