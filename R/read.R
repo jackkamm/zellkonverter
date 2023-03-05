@@ -114,7 +114,7 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
 
     # Let's read in the X matrix first... if it's there.
     if ("X" %in% names(contents)) {
-        all.assays[['X']] <- .read_matrix(file, "X", contents[["X"]], backed = backed)
+        all.assays[["X"]] <- .read_matrix(file, "X", contents[["X"]], backed = backed)
     }
 
     for (layer in names(contents[["layers"]])) {
@@ -313,10 +313,11 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
     # can't yet read enum (factor/boolean) in attributes
     element_attrs <- rhdf5::h5readAttributes(file, path)
 
-    if (identical(element_attrs[["encoding-type"]], 'categorical')) {
-        codes <- obj[['codes']] + 1
+    # Convert categorical element
+    if (identical(element_attrs[["encoding-type"]], "categorical")) {
+        codes <- obj[["codes"]] + 1
         codes[codes == 0] <- NA
-        levels <- obj[['categories']]
+        levels <- obj[["categories"]]
 
         # Can't determine orderedness due to rhdf5 not yet supporting
         # enums in attributes
@@ -327,20 +328,22 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
         return(obj)
     }
 
+    # Handle nullable booleans/integers
     if (element_attrs[["encoding-type"]] %in% c("nullable-boolean",
                                                 "nullable-integer")) {
-        mask <- as.logical(obj[['mask']]) # convert enum to bool
-        obj <- obj[['values']]
+        mask <- as.logical(obj[["mask"]]) # convert enum to bool
+        obj <- obj[["values"]]
         obj[mask] <- NA
     }
 
-    # encoding-type doesn't specify non-nullable booleans, so we have
-    # to infer it from the enum levels
-    if (is.factor(obj) && identical(levels(obj), c('FALSE', 'TRUE'))) {
+    # Handle booleans. Non-nullable booleans have encoding-type
+    # "array", so we have to infer the type from the enum levels
+    if (is.factor(obj) && identical(levels(obj), c("FALSE", "TRUE"))) {
         obj <- as.logical(obj)
         return(obj)
     }
 
+    # Recursively convert element members
     if (recursive && is.list(obj) && !is.null(names(obj))) {
         for (k in names(obj)) {
             obj[[k]] <- .convert_element(

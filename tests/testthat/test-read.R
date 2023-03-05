@@ -77,7 +77,7 @@ test_that("Reading H5AD works with native reader", {
 
 test_that("Reading v0.8 H5AD works with native reader", {
     sce_py <- readH5AD(file_v08)
-    sce_r <- readH5AD(file_v08, reader='R')
+    sce_r <- readH5AD(file_v08, reader="R")
 
     expect_identical(rownames(sce_py), rownames(sce_r))
     expect_identical(colnames(sce_py), colnames(sce_r))
@@ -89,8 +89,8 @@ test_that("Reading v0.8 H5AD works with native reader", {
     expect_true(setequal(colnames(colData(sce_py)), colnames(colData(sce_r))))
 
     # check colData columns that Python reader is able to handle
-    good_coldat_columns <- c('cell_type', 'dummy_bool', 'dummy_int',
-                             'dummy_num', 'dummy_num2')
+    good_coldat_columns <- c("cell_type", "dummy_bool", "dummy_int",
+                             "dummy_num", "dummy_num2")
 
     expect_equal(colData(sce_py)[,good_coldat_columns],
                  colData(sce_r)[,good_coldat_columns])
@@ -107,26 +107,26 @@ test_that("Reading v0.8 H5AD works with native reader", {
     expect_identical(assays(sce_py), assays(sce_r))
 
     # check the easy metadata columns
-    for (key in c('highlights', 'iroot', 'dummy_int')) {
+    for (key in c("highlights", "iroot", "dummy_int")) {
         expect_equal(metadata(sce_py)[[key]], metadata(sce_r)[[key]])
     }
 
     # python reads uns[dummy_bool] as an array, so convert it (is that
     # a bug in the python reader?)
     expect_equal(
-        as.vector(metadata(sce_py)[['dummy_bool']]),
-        metadata(sce_r)[['dummy_bool']]
+        as.vector(metadata(sce_py)[["dummy_bool"]]),
+        metadata(sce_r)[["dummy_bool"]]
     )
 
     # python reader doesn't parse these metadata, so check manually
     # (the factor is skipped outright; the bool/int are returned as environments).
-    expect_identical(metadata(sce_r)[['dummy_bool2']],
+    expect_identical(metadata(sce_r)[["dummy_bool2"]],
                      c(TRUE, FALSE, NA))
 
-    expect_equal(metadata(sce_r)[['dummy_int2']],
+    expect_equal(metadata(sce_r)[["dummy_int2"]],
                  as.array(c(1, 2, NA)))
 
-    expect_equal(metadata(sce_r)[['dummy_category']],
+    expect_equal(metadata(sce_r)[["dummy_category"]],
                  factor(c("a", "b", NA)))
 })
 
