@@ -398,6 +398,11 @@ readH5AD <- function(file, X_name = NULL, use_hdf5 = FALSE,
         indices <- NULL
     }
 
+    column_order <- rhdf5::h5readAttributes(file, path)[["column-order"]]
+    if (!is.null(column_order)) {
+        out_cols <- out_cols[column_order]
+    }
+
     if (length(out_cols)) {
         df <- do.call(DataFrame, out_cols)
         rownames(df) <- indices

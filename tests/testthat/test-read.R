@@ -85,8 +85,7 @@ test_that("Reading v0.8 H5AD works with native reader", {
     # rowData is just an empty DataFrame here
     expect_identical(rowData(sce_py), rowData(sce_r))
 
-    # colData colnames not in same order, but check the sets are the same
-    expect_true(setequal(colnames(colData(sce_py)), colnames(colData(sce_r))))
+    expect_identical(colnames(colData(sce_py)), colnames(colData(sce_r)))
 
     # check colData columns that Python reader is able to handle
     good_coldat_columns <- c("cell_type", "dummy_bool", "dummy_int",
